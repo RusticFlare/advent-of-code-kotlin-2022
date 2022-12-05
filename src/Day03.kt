@@ -1,18 +1,25 @@
 fun main() {
     val alphabet = "abcdefghijklmnopqrstuvwxyz"
     val score = (" " + alphabet + alphabet.uppercase()).toList()
+
+    fun Char.priority() = score.indexOf(this)
+
     fun part1(input: List<String>): Int {
         return input.sumOf {
             val mid = it.length / 2
-            val char = (it.substring(0 until mid).toSet() intersect it.substring(startIndex = mid).toSet())
-                .single()
-            score.indexOf(char)
+            val first = it.substring(0 until mid).toSet()
+            val second = it.substring(startIndex = mid).toSet()
+            (first intersect second).single().priority()
         }
     }
 
     fun part2(input: List<String>): Int {
-        return input.chunked(3)
-            .sumOf { (a, b, c) -> score.indexOf((a.toSet() intersect b.toSet() intersect c.toSet()).single()) }
+        return input.chunked(3).sumOf { elves ->
+            elves.map { it.toSet() }
+                .reduce(Set<Char>::intersect)
+                .single()
+                .priority()
+        }
     }
 
     // test if implementation meets criteria from the description, like:
