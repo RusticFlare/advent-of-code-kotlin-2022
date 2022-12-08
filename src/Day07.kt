@@ -20,7 +20,7 @@ private sealed interface Filesystem {
     ) : Filesystem
 }
 
-private fun Directory.deepFlatten():List<Directory> = files
+private fun Directory.deepFlatten(): List<Directory> = files
     .filterIsInstance<Directory>()
     .flatMap { it.deepFlatten() } + this
 
