@@ -1,9 +1,9 @@
 fun main() {
     fun part1(input: List<String>): Int {
-        val forrestHeights = input.map { it.map { tree -> tree.digitToInt() } }
-        return forrestHeights.withIndex().drop(1).dropLast(1).sumOf { (row, rowTreesHeights) ->
+        val forestHeights = input.map { it.map { tree -> tree.digitToInt() } }
+        return forestHeights.withIndex().drop(1).dropLast(1).sumOf { (row, rowTreesHeights) ->
             rowTreesHeights.withIndex().drop(1).dropLast(1).count { (column, treeHeight) ->
-                val columnTreesHeights = forrestHeights.map { it[column] }
+                val columnTreesHeights = forestHeights.map { it[column] }
                 listOf(
                     rowTreesHeights.take(column),
                     rowTreesHeights.drop(column + 1),
@@ -11,7 +11,7 @@ fun main() {
                     columnTreesHeights.drop(row + 1),
                 ).any { treeHeights -> treeHeights.all { it < treeHeight } }
             }
-        } + ((forrestHeights.size + forrestHeights.size - 2) * 2)
+        } + ((forestHeights.size + forestHeights.size - 2) * 2)
     }
 
     fun part2(input: List<String>): Int {
