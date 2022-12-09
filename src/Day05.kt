@@ -2,8 +2,7 @@ fun main() {
     fun part1(input: String): String {
         val (initialState, steps) = input.split("\n\n")
         val totalStacks = initialState.lines().last().split(" ").mapNotNull { it.toIntOrNull() }.last()
-        val stacks = (1..totalStacks)
-            .associateWith { mutableListOf<Char>() }
+        val stacks = (1..totalStacks).associateWith { mutableListOf<Char>() }
         initialState.lines().forEach { line ->
             stacks.forEach { (index, stack) ->
                 line.getOrNull((index * 4) - 3)?.takeIf { it.isLetter() }

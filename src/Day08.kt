@@ -24,8 +24,12 @@ fun main() {
                     rowTreesHeights.drop(column + 1),
                     columnTreesHeights.take(row).reversed(),
                     columnTreesHeights.drop(row + 1),
-                ).map { treeHeights -> treeHeights.takeWhile { it < treeHeight }.size.let { if (it < treeHeights.size) it + 1 else it } }
-                    .reduce(Int::times)
+                ).map { treeHeights ->
+                    treeHeights
+                        .takeWhile { it < treeHeight }
+                        .size
+                        .let { if (it < treeHeights.size) it + 1 else it }
+                }.reduce(Int::times)
             }
         }
     }
