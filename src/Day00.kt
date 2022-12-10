@@ -13,8 +13,12 @@ fun main() {
 //    check(part2(testInput) == 4)
 
     val input = readLines("Day00")
-//    check(part1(input) == 569)
-    println(part1(input))
-//    check(part2(input) == 936)
-//    println(part2(input))
+    with(part1(input)) {
+        check(this == 569)
+        println(this)
+    }
+//    with(part2(input)) {
+//        check(this == 569)
+//        println(this)
+//    }
 }
