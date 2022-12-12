@@ -14,7 +14,7 @@ fun main() {
 
     val input = readLines("Day00")
     with(part1(input)) {
-        check(this == 569)
+//        check(this == 569)
         println(this)
     }
 //    with(part2(input)) {
