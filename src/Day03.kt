@@ -7,7 +7,7 @@ fun main() {
     fun part1(input: List<String>): Int {
         return input.sumOf {
             val mid = it.length / 2
-            val first = it.substring(0 until mid).toSet()
+            val first = it.substring(0 until mid).asIterable()
             val second = it.substring(startIndex = mid).toSet()
             (first intersect second).single().priority()
         }
