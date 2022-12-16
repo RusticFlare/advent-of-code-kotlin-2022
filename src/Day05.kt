@@ -12,7 +12,7 @@ fun main() {
         steps.lines().forEach { step ->
             val (move, from, to) = step.split(" ").mapNotNull { it.toIntOrNull() }
             repeat(times = move) {
-                stacks.getValue(to).add(index = 0, stacks.getValue(from).removeAt(index = 0))
+                stacks.getValue(to).add(index = 0, stacks.getValue(from).removeFirst())
             }
         }
         return stacks.values.joinToString(separator = "") { it.first().toString() }
@@ -32,7 +32,7 @@ fun main() {
         steps.lines().forEach { step ->
             val (move, from, to) = step.split(" ").mapNotNull { it.toIntOrNull() }
             stacks.getValue(to).addAll(index = 0, stacks.getValue(from).take(move))
-                repeat(times = move) { stacks.getValue(from).removeAt(index = 0) }
+            repeat(times = move) { stacks.getValue(from).removeFirst() }
         }
         return stacks.values.joinToString(separator = "") { it.first().toString() }
     }
