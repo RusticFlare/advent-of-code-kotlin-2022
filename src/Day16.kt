@@ -13,7 +13,7 @@ private data class OneState(
 private data class TwoState(
     val myValve: Valve,
     val elephantValve: Valve,
-    val openValves: Set<Valve> = emptySet(),
+    val closedValves: List<Valve>,
     val pressureReleased: Int = 0,
 )
 
@@ -88,43 +88,43 @@ fun main() {
 
         val aa = valves.getValue("AA")
         return (25 downTo 1).fold(
-            initial = setOf(TwoState(myValve = aa, elephantValve = aa))
+            initial = setOf(TwoState(myValve = aa, elephantValve = aa, closedValves = valves.values.filter { it.flowRate > 0 }.sortedByDescending { it.flowRate }))
         ) { states, minutesRemaining ->
 
-            fun TwoState.openMyValve() : List<TwoState> = if (myValve.flowRate == 0 || myValve in openValves) {
+            fun TwoState.openMyValve() : List<TwoState> = if (myValve !in closedValves) {
                 emptyList()
             } else {
                 elephantValve.adjacentValves
                     .map { valves.getValue(it) }
                     .map { newElephantValve ->
                         copy(
-                            openValves = openValves + myValve,
+                            closedValves = closedValves - myValve,
                             pressureReleased = pressureReleased + (myValve.flowRate * minutesRemaining),
                             elephantValve = newElephantValve,
                         )
                     }
             }
 
-            fun TwoState.openElephantValve() : List<TwoState> = if (elephantValve.flowRate == 0 || elephantValve in openValves) {
+            fun TwoState.openElephantValve() : List<TwoState> = if (elephantValve !in closedValves) {
                 emptyList()
             } else {
                 myValve.adjacentValves
                     .map { valves.getValue(it) }
                     .map { newMyValve ->
                         copy(
-                            openValves = openValves + elephantValve,
+                            closedValves = closedValves - elephantValve,
                             pressureReleased = pressureReleased + (elephantValve.flowRate * minutesRemaining),
                             myValve = newMyValve,
                         )
                     }
             }
 
-            fun TwoState.openBothValves(): List<TwoState> = if (elephantValve == myValve || myValve.flowRate == 0 || elephantValve.flowRate == 0 || myValve in openValves || elephantValve in openValves) {
+            fun TwoState.openBothValves(): List<TwoState> = if (elephantValve == myValve || myValve !in closedValves || elephantValve !in closedValves) {
                 emptyList()
             } else {
                 listOf(
                     copy(
-                        openValves = openValves + elephantValve + myValve,
+                        closedValves = closedValves - elephantValve - myValve,
                         pressureReleased = pressureReleased + ((elephantValve.flowRate + myValve.flowRate) * minutesRemaining),
                     )
                 )
@@ -132,8 +132,10 @@ fun main() {
 
             fun Set<TwoState>.cull() : List<TwoState> {
                 val targetPressureReleased = maxOf { it.pressureReleased }
-                val possibleExtraPressureReleased = (minutesRemaining downTo 1 step 2).sum() * maxFlowRate * 2
-                return filter { it.pressureReleased + possibleExtraPressureReleased >= targetPressureReleased }
+                return filter {
+                    val possibleExtraPressureReleased = (minutesRemaining downTo 1 step 2).mapIndexed { index, i -> ((it.closedValves.getOrNull(index * 2)?.flowRate ?: 0) + (it.closedValves.getOrNull((index * 2) + 1)?.flowRate ?: 0)) * i }.sum()
+                    it.pressureReleased + possibleExtraPressureReleased >= targetPressureReleased
+                }
             }
 
             states.cull()
@@ -154,7 +156,7 @@ fun main() {
         println(this)
     }
     with(part2(input)) {
-//        check(this == 569)
+        check(this == 2343)
         println(this)
     }
 }
