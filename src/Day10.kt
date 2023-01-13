@@ -23,7 +23,7 @@ fun main() {
             }.scan(initial = 1) { acc, value -> acc + value }
             .chunked(40)
             .take(6)
-            .joinToString(separator = "\n") {
+            .joinToString(separator = System.lineSeparator()) {
                 it.withIndex().joinToString(separator = "") { (index, value) -> if (index - value in -1..1) "#" else "."}
             }
     }
