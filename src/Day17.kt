@@ -61,7 +61,7 @@ private enum class Rock(val solidPoints: List<CoordinateDelta>) {
 
 private class Chamber {
 
-    var height by Delegates.vetoable( initialValue = Row(0)) { _, old, new -> old < new }
+    var height by Delegates.vetoable( initialValue = 0.r) { _, old, new -> old < new }
         private set
 
     private val solids = mutableSetOf<Coordinate>()
@@ -101,137 +101,72 @@ private data class State(
 )
 
 private data class HeightState(
-    val height: Int,
+    val height: Row,
     val iterations: Int,
 )
 
 fun main() {
-    fun part1(input: String): Long {
+    fun day17(input: String, iterations: Long): Long {
+        var iterationsRemaining = iterations
         val jetPattern = input.map { char ->
             when (char) {
                 '>' -> Jet.RIGHT
                 '<' -> Jet.LEFT
                 else -> error("$char not recognised")
             }
-        }
+        }.withIndex()
         val jets = generateSequence { jetPattern }.flatten().iterator()
         val chamber = Chamber()
+        val seenStates = mutableMapOf<State, HeightState>()
+        var lookForCycle = false
+        var lastJetIndex = -1
+        var heightToAdd = 0L
 
-        generateSequence { Rock.values().asList() }.flatten().take(2022).forEach { rock ->
-            generateSequence(chamber.startPoint()) { point ->
-                val jetPoint = point.copy(column = point.column + jets.next().columnDelta)
-                    .takeIf { newPoint -> rock.coordinates(newPoint).none { chamber.isSolid(it) } }
-                    ?: point
+        val indexedRocks = Rock.values().withIndex()
+        generateSequence { indexedRocks }.flatten().takeWhile { iterationsRemaining-- > 0 }
+            .forEachIndexed { index, (rockIndex, rock) ->
+                if (index == 500) {
+                    lookForCycle = true
+                }
+                if (lookForCycle) {
+                    seenStates.putIfAbsent(State(rockIndex, lastJetIndex), HeightState(chamber.height, index))
+                        ?.let { (prevHeight, prevIndex) ->
+                            val cycleLength = index - prevIndex
+                            val cyclesRemaining = iterationsRemaining / cycleLength
+                            iterationsRemaining %= cycleLength
+                            heightToAdd = (chamber.height.value - prevHeight.value) * cyclesRemaining
+                            lookForCycle = false
+                        }
+                }
 
-                jetPoint.copy(row = point.row + (-1).rd)
-                    .takeIf { newPoint -> rock.coordinates(newPoint).none { chamber.isSolid(it) } }
-                    ?: null.also { rock.coordinates(jetPoint).forEach { chamber.setSolid(it) } }
-            }.last()
-        }
+                generateSequence(chamber.startPoint()) { point ->
+                    val (jetIndex, value) = jets.next()
+                    lastJetIndex = jetIndex
+                    val jetPoint = point.copy(column = point.column + value.columnDelta)
+                        .takeIf { newPoint -> rock.coordinates(newPoint).none { chamber.isSolid(it) } }
+                        ?: point
 
-        return chamber.height.value
+                    jetPoint.copy(row = point.row + (-1).rd)
+                        .takeIf { newPoint -> rock.coordinates(newPoint).none { chamber.isSolid(it) } }
+                        ?: null.also { rock.coordinates(jetPoint).forEach { chamber.setSolid(it) } }
+                }.last()
+            }
+
+        return chamber.height.value + heightToAdd
+    }
+
+    fun part1(input: String): Long {
+        return day17(input, iterations = 2022)
     }
 
     fun part2(input: String): Long {
-        val jetPattern: Iterable<IndexedValue<(UShort) -> UShort>> = input.map { char ->
-            when (char) {
-                '>' -> { uShort: UShort -> uShort.rotateRight(bitCount = 1) }
-                '<' -> { uShort: UShort -> uShort.rotateLeft(bitCount = 1) }
-                else -> error("$char not recognised")
-            }
-        }.withIndex()
-        val jets = generateSequence { jetPattern }.flatten().iterator()
-        val floor:UShort = 0b1_1111111_1u
-        val chamber = mutableListOf(floor)
-        val emptyRow:UShort = 0b1_0000000_1u
-        fun List<UShort>.emptyRows() = takeLastWhile { it == emptyRow }.count()
-        fun MutableList<UShort>.pad() {
-            repeat(7 - emptyRows()) { add(emptyRow) }
-        }
-        fun List<UShort>.height() = size - emptyRows()
-        fun MutableList<UShort>.startRow() = size - 4
-        chamber.pad()
-
-        val across = listOf<UShort>(
-            0b0_0011110_0u,
-        ).reversed()
-        val plus = listOf<UShort>(
-            0b0_0001000_0u,
-            0b0_0011100_0u,
-            0b0_0001000_0u,
-        ).reversed()
-        val arrow = listOf<UShort>(
-            0b0_0000100_0u,
-            0b0_0000100_0u,
-            0b0_0011100_0u,
-        ).reversed()
-        val down = listOf<UShort>(
-            0b0_0010000_0u,
-            0b0_0010000_0u,
-            0b0_0010000_0u,
-            0b0_0010000_0u,
-        ).reversed()
-        val square = listOf<UShort>(
-            0b0_0011000_0u,
-            0b0_0011000_0u,
-        ).reversed()
-
-        val blocks = listOf(across, plus, arrow, down, square).withIndex()
-
-        val seenStates = mutableMapOf<State, HeightState>()
-
-        var heightToAdd = 0L
-        var notSkipped = true
-
-        var iterationsRemaining = 1000000000000
-        var lastJetIndex: Int = -1
-        generateSequence { blocks }.flatten().takeWhile { --iterationsRemaining > 0 }.forEachIndexed { index, (blockIndex, block) ->
-            val startRow = chamber.startRow()
-            if (notSkipped) {
-                seenStates.putIfAbsent(State(blockIndex, lastJetIndex), HeightState(chamber.height(), index))
-                    ?.let { (prevHeight, prevIterations) ->
-                        val cyclesRemaining = iterationsRemaining / (index - prevIterations)
-                        heightToAdd = cyclesRemaining * (chamber.height() + prevHeight)
-                        iterationsRemaining %= (index - prevIterations)
-                        notSkipped = false
-                    }
-            }
-            generateSequence(FallingBlock(startRow, block)) { fallingRock ->
-                val (row, rock) = fallingRock
-                val (jetIndex, jet) = jets.next()
-                lastJetIndex = jetIndex
-                val postJetRock = rock.map(jet)
-                    .takeIf { newRock ->
-                        chamber.subList(row, row + block.size)
-                            .zip(newRock) { c, b -> c.inv() or b.inv() }
-                            .all { it == UShort.MAX_VALUE }
-                    } ?: block
-
-                val nextRow = row - 1
-                postJetRock.takeIf { newRock ->
-                    chamber.subList(nextRow, nextRow + block.size)
-                        .zip(newRock) { c, b -> c.inv() or b.inv() }
-                        .all { it == UShort.MAX_VALUE }
-                }?.let { fallingRock.apply {
-                    this.row = nextRow
-                    this.block = it
-                } } ?: null.also {
-                    for ((bi, ci) in (row until (row + block.size)).withIndex()) {
-                        chamber[ci] = chamber[ci] or postJetRock[bi]
-                        chamber.pad()
-                    }
-                }
-            }.last()
-        }
-
-        return heightToAdd + chamber.height()
+        return day17(input, iterations = 1000000000000)
     }
 
     // test if implementation meets criteria from the description, like:
     val testInput = readText("Day17_test")
-    check(part1(testInput) == 3068L)
-    println(part2(testInput))
-    check(part2(testInput) == 1514285714288)
+    check(part1(testInput) == 3068L) { "Part 1 should be 3068, was ${part1(testInput)}" }
+    check(part2(testInput) == 1514285714288) { "Part 2 should be 1514285714288, was ${part2(testInput)}" }
 
     val input = readText("Day17")
     with(part1(input)) {
@@ -239,7 +174,7 @@ fun main() {
         println(this)
     }
     with(part2(input)) {
-//        check(this == 569)
+        check(this == 1591860465110)
         println(this)
     }
 }
