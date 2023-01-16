@@ -1,7 +1,6 @@
 fun main() {
     fun part1(input: List<String>): Int {
         val points = mutableSetOf<Triple<Int, Int, Int>>()
-        var surfaceArea = 0
         fun Triple<Int, Int, Int>.adjacent() = listOf(
             copy(first = first + 1),
             copy(first = first - 1),
@@ -10,18 +9,16 @@ fun main() {
             copy(third = third + 1),
             copy(third = third - 1),
         )
-        input.asSequence()
+        return input.asSequence()
             .map { it.split(",").map(String::toInt) }
             .map { (x, y, z) -> Triple(x, y, z) }
-            .forEach { point ->
-                point.adjacent().forEach { if (it in points) surfaceArea-- else surfaceArea++ }
-                points += point
+            .sumOf { point ->
+                point.adjacent().sumOf { (if (it in points) -1 else 1).toInt() }
+                    .also { points += point }
             }
-        return surfaceArea
     }
 
     fun part2(input: List<String>): Int {
-        var surfaceArea = 0
         val points = input.asSequence()
             .map { it.split(",").map(String::toInt) }
             .map { (x, y, z) -> Triple(x, y, z) }
@@ -37,14 +34,13 @@ fun main() {
             (second - 1).takeIf { it in yRange }?.let { copy(second = it) },
             (third + 1).takeIf { it in zRange }?.let { copy(third = it) },
             (third - 1).takeIf { it in zRange }?.let { copy(third = it) },
-        ).filterNot { it in visited }
-            .filterNot { (it in points).also { border -> if (border) surfaceArea++ } }
+        )
         val toVisit = mutableListOf(Triple(xRange.first, yRange.first, zRange.first))
-        generateSequence { toVisit.removeFirstOrNull() }
+        return generateSequence { toVisit.removeFirstOrNull() }
             .filter(visited::add)
             .flatMap { it.adjacent() }
-            .forEach(toVisit::add)
-        return surfaceArea
+            .filterNot { it in visited }
+            .count { point -> (point in points).also { if (!it) toVisit += point } }
     }
 
     // test if implementation meets criteria from the description, like:
