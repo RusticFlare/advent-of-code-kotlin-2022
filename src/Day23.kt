@@ -90,7 +90,7 @@ fun main() {
         }.toSet()
         generateSequence(CardinalDirection.North as CardinalDirection) { it.next }
             .take(10)
-            .forEachIndexed { index, cardinalDirection ->
+            .forEach { cardinalDirection ->
                 positions = positions.next(cardinalDirection) // .also { it.print(index) }
             }
         return ((positions.maxOf { it.row } - positions.minOf { it.row } + 1) *
@@ -98,23 +98,29 @@ fun main() {
     }
 
     fun part2(input: List<String>): Int {
-        return input.size
+        var positions = input.flatMapIndexed { row, s ->
+            s.withIndex().filter { (_, char) -> char == '#' }.map { (col) -> Pos(row, col) }
+        }.toSet()
+        return generateSequence(CardinalDirection.North as CardinalDirection) { it.next }
+            .takeWhile { cardinalDirection ->
+                val next = positions.next(cardinalDirection)
+                (next != positions).also { if (it) positions = next }
+            }
+            .count() + 1
     }
 
     // test if implementation meets criteria from the description, like:
     val testInput = readLines("Day23_test")
-    val part1 = part1(testInput)
-    println(part1)
-    check(part1 == 110)
-//    check(part2(testInput) == 4)
+    check(part1(testInput) == 110)
+    check(part2(testInput) == 20)
 
     val input = readLines("Day23")
     with(part1(input)) {
         check(this == 4254)
         println(this)
     }
-//    with(part2(input)) {
-//        check(this == 569)
-//        println(this)
-//    }
+    with(part2(input)) {
+        check(this == 992)
+        println(this)
+    }
 }
