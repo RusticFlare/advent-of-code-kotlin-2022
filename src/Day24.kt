@@ -87,7 +87,7 @@ private data class PartyState2(
     val destinations: List<Location>,
 ) : Comparable<PartyState2> {
     val bestPossibleResult =
-        minute + Minute(location distanceTo destinations.first()) +
+        minute + Minute(location distanceTo (destinations.firstOrNull() ?: location)) +
                 Minute(destinations.zipWithNext { a, b -> a distanceTo b }.sum())
 
     override fun compareTo(other: PartyState2) = comparator.compare(this, other)
@@ -163,7 +163,71 @@ fun main() {
     }
 
     fun part2(input: List<String>): Int {
-        return input.size
+        val valley = Valley(
+            xRange = with(input.first().indices) {
+                XRange(first.toUInt().inc()..last.toUInt().dec())
+            },
+            yRange = with(input.indices) {
+                YRange(first.toUInt().inc()..last.toUInt().dec())
+            },
+        )
+        val initialMinute = Minute(0u)
+        val blizzardStates = mutableMapOf<Minute, Pair<Collection<Blizzard>, Set<Location>>>().apply {
+            this[initialMinute] = input.flatMapIndexed { y, s ->
+                s.mapIndexedNotNull { x, c ->
+                    when (c) {
+                        '>' -> RIGHT
+                        '^' -> UP
+                        'v' -> DOWN
+                        '<' -> LEFT
+                        else -> null
+                    }?.let { traveling ->
+                        Blizzard(
+                            location = Location(X(x.toUInt()), Y(y.toUInt())),
+                            traveling = traveling,
+                        )
+                    }
+                }
+            }.let { it to it.map { blizzard -> blizzard.location }.toSet() }
+        }
+        val queue = PriorityQueue<PartyState2>().apply {
+            add(
+                PartyState2(
+                    minute = initialMinute,
+                    location = valley.entrance,
+                    destinations = listOf(valley.exit, valley.entrance, valley.exit),
+                )
+            )
+        }
+
+        while (queue.isNotEmpty()) {
+            val state = queue.poll()
+            val nextMinute = state.minute.inc()
+            val (_, blizzardLocations) = blizzardStates.computeIfAbsent(nextMinute) {
+                println(it)
+                val (blizzards) = blizzardStates.getValue(state.minute)
+                blizzards.map { blizzard -> blizzard.move(valley) }
+                    .let { newBlizzards -> newBlizzards to newBlizzards.map { blizzard -> blizzard.location }.toSet() }
+            }
+            queue.addAll(
+                listOfNotNull(
+                    state.copy(minute = nextMinute),
+                    runCatching { state.copy(minute = nextMinute, location = state.location.up) }.getOrNull(),
+                    runCatching { state.copy(minute = nextMinute, location = state.location.down) }.getOrNull(),
+                    state.copy(minute = nextMinute, location = state.location.left),
+                    state.copy(minute = nextMinute, location = state.location.right),
+                ).filter { it.location in valley && it.location !in blizzardLocations && it !in queue }
+                    .map {
+                        when (it.location) {
+                            it.destinations.first() -> it.copy(destinations = it.destinations.drop(1))
+                                .also { state -> if (state.destinations.isEmpty()) return state.minute.value.toInt() }
+
+                            else -> it
+                        }
+                    }
+            )
+        }
+        error("No path found")
     }
 
     // test if implementation meets criteria from the description, like:
@@ -177,7 +241,7 @@ fun main() {
         println(this)
     }
     with(part2(input)) {
-//        check(this == 569)
+        check(this == 905)
         println(this)
     }
 }
