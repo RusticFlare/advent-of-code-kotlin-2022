@@ -105,15 +105,84 @@ fun main() {
         return (1000 * position.first) + (4 * position.second) + facing.score
     }
 
-    fun part2(input: String): Int {
+    fun part2(input: String, edges: (Pair<Int, Int>) -> Pair<Pair<Int, Int>, Facing>): Int {
         val (boardInput, directionInput) = input.split("\n\n")
-        return 0
+
+        val board = boardInput.lines().flatMapIndexed { row, line ->
+            line.mapIndexedNotNull { column, char ->
+                when (char) {
+                    '.' -> ((row + 1) to (column + 1)) to Spot.OPEN
+                    '#' -> ((row + 1) to (column + 1)) to Spot.WALL
+                    else -> null
+                }
+            }
+        }.toMap()
+
+        var position = board
+            .minWith(compareBy<Map.Entry<Pair<Int, Int>, Spot?>> { it.key.first }.thenBy { it.key.second })
+            .key
+        var facing = Facing.RIGHT
+
+        fun turnLeft() {
+            facing = when (facing) {
+                Facing.RIGHT -> Facing.UP
+                Facing.DOWN -> Facing.RIGHT
+                Facing.LEFT -> Facing.DOWN
+                Facing.UP -> Facing.LEFT
+            }
+        }
+
+        fun turnRight() {
+            facing = when (facing) {
+                Facing.RIGHT -> Facing.DOWN
+                Facing.DOWN -> Facing.LEFT
+                Facing.LEFT -> Facing.UP
+                Facing.UP -> Facing.RIGHT
+            }
+        }
+
+        fun move() {
+            var tryPosition = when (facing) {
+                Facing.UP -> position.copy(first = position.first - 1)
+                Facing.DOWN -> position.copy(first = position.first + 1)
+                Facing.LEFT -> position.copy(second = position.second - 1)
+                Facing.RIGHT -> position.copy(second = position.second + 1)
+            } to facing
+            tryPosition = tryPosition.takeIf { board[it.first] != null } ?: edges(tryPosition.first)
+            tryPosition.takeIf { board[it.first] == Spot.OPEN }
+                ?.also { (newPosition, newFacing) ->
+                    position = newPosition
+                    facing = newFacing
+                }
+        }
+
+        pathGrammar.parseToEnd(directionInput).forEach {
+            when (it) {
+                is Direction.Move -> repeat(it.amount) { move() }
+                Direction.Left -> turnLeft()
+                Direction.Right -> turnRight()
+            }
+        }
+
+        return (1000 * position.first) + (4 * position.second) + facing.score
     }
 
     // test if implementation meets criteria from the description, like:
     val testInput = readText("Day22_test")
     check(part1(testInput) == 6032)
-    check(part2(testInput) == 5031)
+
+    fun Int.s() = this..this
+    infix fun Int.r(length: Int) = this..(this + length)
+
+    mapOf<Pair<IntRange, IntRange>, (Pair<Int, Int>) -> Pair<Pair<Int, Int>, Facing>>(
+        (0.s() to (9 r 4)) to { (r, c) -> (5 to (4 + 9 - c)) to Facing.DOWN }
+    )
+
+    check(part2(testInput) { (row, column) ->
+        when(row) {
+            0
+        }
+    } == 5031)
 
     val input = readText("Day22")
     with(part1(input)) {
